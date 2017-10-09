@@ -7,8 +7,9 @@ import (
 )
 
 type result struct {
-	url   string
-	depth int
+	parent string
+	url    string
+	depth  int
 }
 
 type Crawler struct {
@@ -124,3 +125,60 @@ func (c *Crawler) setFilters(filters []string) error {
 	c.filters = filters
 	return nil
 }
+
+
+func (c *Crawler) Crawl(urls []string) {
+	var wg sync.WaitGroup
+	for i := range urls {
+	go func(ctx context.Context, wg *sync.WaitGroup, url string, resc chan *result, errc chan error) {
+			ctx, cancel := context.WithTimeout(ctx)
+			defer cancel() // should execute after wg.done, which will happen in current order?
+			wg.Add(1)
+			defer wg.Done()
+		}(c.ctx,&wg,urls[i], c.resc,c.errc)
+	}
+	
+
+	go func(ctx context.Context, res chan *result, e chan error){
+		for {
+			select {
+				case <-ctx.Done():
+					e<- ctx.Err()
+					return //return or goroutine will leak
+				case <-res:
+					CacheResult(res)
+
+
+			}
+		}
+	}(ctx, dst, errc)
+}
+
+func CacheResult(res *result) {
+
+}
+
+
+/*
+ *func Crawl(ctx context.Context,f Fetcher, urls []string, res chan *result, err chan error) {
+ *    
+ *    for i := range urls {
+ *        go func(u string, r chan *result, e chan error) {
+ *            f.Fetch(u, r, e)
+ *        }(urls[i], res, err)
+ *    }
+ *
+ *    go func(r <-chan *result, e <-chan error) {
+ *        for {
+ *            select {
+ *            case <-r:
+ *                fmt.Printf("\nFound: %s\n", out)
+ *            case <-e:
+ *                fmt.Printf("\nFailed to fetch url: %s\n", fault)
+ *            case <-ctx.Done():
+ *                fmt.Println(ctx.Err())
+ *            }
+ *        }
+ *    }(res, err)
+ *}
+ */
