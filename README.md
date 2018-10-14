@@ -1,1 +1,1 @@
-Concurrent web crawler written in golang.
+Toy concurrent web crawler written in golang.
